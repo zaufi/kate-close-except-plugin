@@ -28,9 +28,12 @@
 // Standard includes
 #  include <kate/plugin.h>
 #  include <kate/pluginconfigpageinterface.h>
+#  include <KActionMenu>
 #  include <KTextEditor/Document>
 #  include <KTextEditor/View>
+#  include <QtCore/QSignalMapper>
 #  include <cassert>
+#  include <set>
 
 namespace kate {
 class CloseExceptPlugin;                                    // forward declaration
@@ -46,6 +49,7 @@ class CloseExceptPluginView
   , public Kate::XMLGUIClient
 {
     Q_OBJECT
+    typedef QMap<QString, QPointer<KAction> > actions_map_type;
 
 public:
     /// Default constructor
@@ -54,7 +58,26 @@ public:
     virtual ~CloseExceptPluginView();
 
 private Q_SLOTS:
-    void closeExcept(const QString&);
+    void documentCreated(KTextEditor::Editor*, KTextEditor::Document*);
+    void updateMenuSlotStub(KTextEditor::Document*);
+    void close(const QString&, const bool);
+    void closeExcept(const QString& item)
+    {
+        close(item, false);
+    }
+    void closeLike(const QString& item)
+    {
+        close(item, true);
+    }
+
+private:
+    void updateMenu();
+    void appendActionsFrom(const std::set<QString>&);
+
+    CloseExceptPlugin* m_plugin;
+    QPointer<KActionMenu> m_menu;
+    actions_map_type m_actions;
+    QPointer<QSignalMapper> m_mapper;
 };
 
 /**

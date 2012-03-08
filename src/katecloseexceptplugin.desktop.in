@@ -1,15 +1,14 @@
 [Desktop Entry]
 Encoding=UTF-8
 Type=Service
-Comment=Quick document opener plugin with fuzzy filenames match
-Name=Quick Document Open
-Icon=quickopen-file
+Comment=Close group of documents
+Name=Close Except
 ServiceTypes=Kate/Plugin
-X-KDE-Library=katequickopenplugin
+X-KDE-Library=katecloseexceptplugin
 X-KDE-PluginInfo-Author=Alex Turbov
 X-KDE-PluginInfo-Email=i.zaufi@gmail.com
 X-KDE-PluginInfo-Website=http://kate.kde.org
-X-KDE-PluginInfo-Version=0.2
+X-KDE-PluginInfo-Version=@VERSION_STRING@
 X-KDE-PluginInfo-License=GPL
 X-KDE-PluginInfo-Depends=
 X-KDE-PluginInfo-Category=Editor
