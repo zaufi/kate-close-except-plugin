@@ -75,9 +75,11 @@ CloseExceptPluginView::CloseExceptPluginView(
   : Kate::PluginView(mw)
   , Kate::XMLGUIClient(data)
   , m_plugin(plugin)
-  , m_menu(new KActionMenu(i18n("Close Except"), this))
+  , m_except_menu(new KActionMenu(i18n("Close Except"), this))
+  , m_like_menu(new KActionMenu(i18n("Close Like"), this))
 {
-    actionCollection()->addAction("file_close_except", m_menu);
+    actionCollection()->addAction("file_close_except", m_except_menu);
+    actionCollection()->addAction("file_close_like", m_like_menu);
 
     // Subscribe self to document creation
     connect(
@@ -120,15 +122,48 @@ void CloseExceptPluginView::updateMenuSlotStub(KTextEditor::Document*)
     updateMenu();
 }
 
-void CloseExceptPluginView::appendActionsFrom(const std::set<QString>& paths)
+void CloseExceptPluginView::appendActionsFrom(
+    const std::set<QString>& paths
+  , actions_map_type& actions
+  , KActionMenu* menu
+  , QSignalMapper* mapper
+  )
 {
     Q_FOREACH(const QString& path, paths)
     {
-        m_actions[path] = QPointer<KAction>(new KAction(path, m_menu));
-        m_menu->addAction(m_actions[path]);
-        connect(m_actions[path], SIGNAL(triggered()), m_mapper, SLOT(map()));
-        m_mapper->setMapping(m_actions[path], path);
+        actions[path] = QPointer<KAction>(new KAction(path, menu));
+        menu->addAction(actions[path]);
+        connect(actions[path], SIGNAL(triggered()), mapper, SLOT(map()));
+        mapper->setMapping(actions[path], path);
     }
+}
+
+QPointer<QSignalMapper> CloseExceptPluginView::updateMenu(
+    const std::set<QString>& paths
+  , const std::set<QString>& masks
+  , actions_map_type& actions
+  , KActionMenu* menu
+  )
+{
+    // turn menu ON or OFF depending on collected results
+    menu->setEnabled(!paths.empty());
+
+    // Clear previous menus
+    for (actions_map_type::iterator it = actions.begin(), last = actions.end(); it !=last;)
+    {
+        menu->removeAction(*it);
+        actions.erase(it++);
+    }
+    // Form a new one
+    QPointer<QSignalMapper> mapper = QPointer<QSignalMapper>(new QSignalMapper(this));
+    appendActionsFrom(paths, actions, menu, mapper);
+    if (!masks.empty())
+    {
+        if (!paths.empty())
+            menu->addSeparator();                           // Add separator between paths and file's ext filters
+        appendActionsFrom(masks, actions, menu, mapper);
+    }
+    return mapper;
 }
 
 void CloseExceptPluginView::updateMenu()
@@ -138,13 +173,14 @@ void CloseExceptPluginView::updateMenu()
     if (docs.empty())
     {
         kDebug() << "No docs r opened right now --> disable menu";
-        m_menu->setEnabled(false);
+        m_except_menu->setEnabled(false);
+        m_like_menu->setEnabled(false);
         /// \note It seems there is always a document present... it named \em 'Untitled'
     }
     else
     {
         // Iterate over documents and form a set of candidates
-        std::set<QString> candidates;
+        std::set<QString> paths;
         std::set<QString> masks;
         Q_FOREACH(KTextEditor::Document* document, docs)
         {
@@ -155,27 +191,12 @@ void CloseExceptPluginView::updateMenu()
                 KUrl url = document->url().upUrl()
               ; url.hasPath() && url.path() != "/"
               ; url = url.upUrl()
-              ) candidates.insert(url.path() + "*");
+              ) paths.insert(url.path() + "*");
         }
-        // turn 'Close Except...' menu ON or OFF depending on collected results
-        m_menu->setEnabled(!candidates.empty());
-
-        // Clear previous menu
-        for (actions_map_type::iterator it = m_actions.begin(), last = m_actions.end(); it !=last;)
-        {
-            m_menu->removeAction(*it);
-            m_actions.erase(it++);
-        }
-        // Form a new one
-        m_mapper = QPointer<QSignalMapper>(new QSignalMapper(this));
-        appendActionsFrom(candidates);
-        if (!masks.empty())
-        {
-            if (!candidates.empty())
-                m_menu->addSeparator();                     // Add separator between paths and file's ext filters
-            appendActionsFrom(masks);
-        }
-        connect(m_mapper, SIGNAL(mapped(const QString&)), this, SLOT(closeExcept(const QString&)));
+        m_except_mapper = updateMenu(paths, masks, m_except_actions, m_except_menu);
+        m_like_mapper = updateMenu(paths, masks, m_like_actions, m_like_menu);
+        connect(m_except_mapper, SIGNAL(mapped(const QString&)), this, SLOT(closeExcept(const QString&)));
+        connect(m_like_mapper, SIGNAL(mapped(const QString&)), this, SLOT(closeLike(const QString&)));
     }
 }
 

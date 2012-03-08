@@ -72,12 +72,26 @@ private Q_SLOTS:
 
 private:
     void updateMenu();
-    void appendActionsFrom(const std::set<QString>&);
+    QPointer<QSignalMapper> updateMenu(
+        const std::set<QString>&
+      , const std::set<QString>&
+      , actions_map_type&
+      , KActionMenu*
+      );
+    void appendActionsFrom(
+        const std::set<QString>&
+      , actions_map_type&
+      , KActionMenu*
+      , QSignalMapper*
+      );
 
     CloseExceptPlugin* m_plugin;
-    QPointer<KActionMenu> m_menu;
-    actions_map_type m_actions;
-    QPointer<QSignalMapper> m_mapper;
+    QPointer<KActionMenu> m_except_menu;
+    QPointer<KActionMenu> m_like_menu;
+    QPointer<QSignalMapper> m_except_mapper;
+    QPointer<QSignalMapper> m_like_mapper;
+    actions_map_type m_except_actions;
+    actions_map_type m_like_actions;
 };
 
 /**
