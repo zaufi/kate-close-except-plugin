@@ -207,16 +207,20 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
         "Parameter seems invalid! Is smth changed in the code?"
       && (item.front() == '*' || item.back() == '*')
       );
-    kDebug() << "Going to close items [" << close_if_match << "]: " << item;
 
     const bool is_path = item[0] != '*';
+    const QString mask = is_path ? item.left(item.size() - 1) : item;
+    kDebug() << "Going to close items [" << close_if_match << "/" << is_path << "]: " << mask;
+
     QList<KTextEditor::Document*> docs2close;
     const QList<KTextEditor::Document*>& docs = m_plugin->application()->documentManager()->documents();
     Q_FOREACH(KTextEditor::Document* document, docs)
     {
         const QString& path = document->url().upUrl().path();
         const QString& ext = QFileInfo(document->url().fileName()).completeSuffix();
-        const bool match = (is_path && item.startsWith(path)) || (!is_path && item.endsWith(ext));
+        const bool match = (!is_path && mask.endsWith(ext))
+          || (is_path && (mask.size() < path.size() ? path.startsWith(mask) : mask.startsWith(path)))
+          ;
         if (match == close_if_match)
         {
             kDebug() << "*** Will close: " << document->url();
