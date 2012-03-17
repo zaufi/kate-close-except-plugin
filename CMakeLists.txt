@@ -1,5 +1,5 @@
 #
-# Copyright 2010 Entell Solutions
+# Copyright 2012 by Alex Turbov <i.zaufi@gmail.com>
 #
 
 #---------------------------------------------------------
@@ -75,6 +75,7 @@ add_definitions(${QT_DEFINITIONS} ${KDE4_DEFINITIONS})
 #---------------------------------------------------------
 
 #include(DefineDoxyDocsTargetIfPossible)
+set(NAMING_STYLE Camel)
 include(DefineSkeletonGenerationTargetsIfPossible)
 
 #---------------------------------------------------------
