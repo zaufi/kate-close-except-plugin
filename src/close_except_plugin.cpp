@@ -205,7 +205,7 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
     assert("Expect non empty parameter" && item.isEmpty());
     assert(
         "Parameter seems invalid! Is smth changed in the code?"
-      && (item.front() == '*' || item.back() == '*')
+      && !item.isEmpty() && (item[0] == '*' || item[item.size() - 1] == '*')
       );
 
     const bool is_path = item[0] != '*';
