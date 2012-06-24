@@ -23,6 +23,7 @@
 // Project specific includes
 #include <src/config.h>
 #include <src/close_except_plugin.h>
+#include <src/close_confirm_dialog.h>
 
 // Standard includes
 #include <kate/application.h>
@@ -31,6 +32,7 @@
 #include <KAboutData>
 #include <KActionCollection>
 #include <KDebug>
+#include <KPassivePopup>
 #include <KPluginFactory>
 #include <KPluginLoader>
 #include <KTextEditor/Editor>
@@ -202,7 +204,6 @@ void CloseExceptPluginView::updateMenu()
 
 void CloseExceptPluginView::close(const QString& item, const bool close_if_match)
 {
-    assert("Expect non empty parameter" && item.isEmpty());
     assert(
         "Parameter seems invalid! Is smth changed in the code?"
       && !item.isEmpty() && (item[0] == '*' || item[item.size() - 1] == '*')
@@ -227,9 +228,34 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
             docs2close.push_back(document);
         }
     }
-    // Close 'em all!
-    m_plugin->application()->documentManager()->closeDocumentList(docs2close);
-    updateMenu();
+    if (docs2close.isEmpty())
+    {
+        KPassivePopup::message(
+            i18n("Oops")
+          , i18n("No files to close ...")
+          , qobject_cast<QWidget*>(this)
+          );
+        return;
+    }
+    // Show confirmation dialog
+    CloseConfirmDialog cfrm(docs2close, qobject_cast<QWidget*>(this));
+    if (cfrm.exec())
+    {
+        if (docs2close.isEmpty())
+        {
+            KPassivePopup::message(
+                i18n("Oops")
+            , i18n("No files to close ...")
+            , qobject_cast<QWidget*>(this)
+            );
+        }
+        else
+        {
+            // Close 'em all!
+            m_plugin->application()->documentManager()->closeDocumentList(docs2close);
+            updateMenu();
+        }
+    }
 }
 //END CloseExceptPluginView
 }                                                           // namespace kate

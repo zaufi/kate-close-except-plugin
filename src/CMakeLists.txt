@@ -1,4 +1,5 @@
 set(KATE_CLOSE_EXCEPT_PLUGIN_SOURCES
+    close_confirm_dialog.cpp
     close_except_plugin.cpp
   )
 
