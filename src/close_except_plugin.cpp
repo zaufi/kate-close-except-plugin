@@ -66,6 +66,21 @@ Kate::PluginView* CloseExceptPlugin::createView(Kate::MainWindow* parent)
 {
     return new CloseExceptPluginView(parent, CloseExceptPluginFactory::componentData(), this);
 }
+
+void CloseExceptPlugin::readSessionConfig(KConfigBase* config, const QString& groupPrefix)
+{
+    KConfigGroup scg(config, groupPrefix + "menu");
+    m_show_confirmation_needed = scg.readEntry("ShowConfirmation", true);
+    kDebug() << "READ SESSION CONFIG: sc=" << m_show_confirmation_needed;
+}
+
+void CloseExceptPlugin::writeSessionConfig(KConfigBase* config, const QString& groupPrefix)
+{
+    kDebug() << "WRITE SESSION CONFIG: sc=" << m_show_confirmation_needed;
+    KConfigGroup scg(config, groupPrefix + "menu");
+    scg.writeEntry("ShowConfirmation", m_show_confirmation_needed);
+    scg.sync();
+}
 //END CloseExceptPlugin
 
 //BEGIN CloseExceptPluginView
@@ -77,6 +92,7 @@ CloseExceptPluginView::CloseExceptPluginView(
   : Kate::PluginView(mw)
   , Kate::XMLGUIClient(data)
   , m_plugin(plugin)
+  , m_show_confirmation_action(new KToggleAction(i18n("Show Confirmation"), this))
   , m_except_menu(new KActionMenu(i18n("Close Except"), this))
   , m_like_menu(new KActionMenu(i18n("Close Like"), this))
 {
@@ -90,10 +106,18 @@ CloseExceptPluginView::CloseExceptPluginView(
       , this
       , SLOT(documentCreated(KTextEditor::Editor*, KTextEditor::Document*))
       );
-
-    mainWindow()->guiFactory()->addClient(this);
+    // Configure toggle action and connect it to update state
+    m_show_confirmation_action->setChecked(m_plugin->showConfirmationNeeded());
+    connect(
+        m_show_confirmation_action
+      , SIGNAL(toggled(bool))
+      , m_plugin
+      , SLOT(toggleShowConfirmation(bool))
+      );
     // Fill menu w/ currently opened document masks/groups
     updateMenu();
+
+    mainWindow()->guiFactory()->addClient(this);
 }
 
 CloseExceptPluginView::~CloseExceptPluginView() {
@@ -165,6 +189,9 @@ QPointer<QSignalMapper> CloseExceptPluginView::updateMenu(
             menu->addSeparator();                           // Add separator between paths and file's ext filters
         appendActionsFrom(masks, actions, menu, mapper);
     }
+    // Append 'Show Confirmation' toggle menu item
+    menu->addSeparator();                                   // Add separator between paths and show confirmation
+    menu->addAction(m_show_confirmation_action);
     return mapper;
 }
 
@@ -237,9 +264,10 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
           );
         return;
     }
-    // Show confirmation dialog
-    CloseConfirmDialog cfrm(docs2close, qobject_cast<QWidget*>(this));
-    if (cfrm.exec())
+    // Show confirmation dialog if needed
+    const bool removeNeeded = !m_plugin->showConfirmationNeeded()
+      || CloseConfirmDialog(docs2close, m_show_confirmation_action, qobject_cast<QWidget*>(this)).exec();
+    if (removeNeeded)
     {
         if (docs2close.isEmpty())
         {
@@ -254,6 +282,11 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
             // Close 'em all!
             m_plugin->application()->documentManager()->closeDocumentList(docs2close);
             updateMenu();
+            KPassivePopup::message(
+                i18n("Done")
+              , i18np("%1 file closed", "%1 files closed", docs2close.size())
+              , qobject_cast<QWidget*>(this)
+              );
         }
     }
 }

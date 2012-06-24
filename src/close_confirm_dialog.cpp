@@ -40,8 +40,9 @@ class KateDocItem : public QTreeWidgetItem
       : QTreeWidgetItem(tw)
       , document(doc)
     {
-      setText(0, doc->url().prettyUrl());
-      setCheckState(0, Qt::Checked);
+        setText(0, doc->documentName());
+        setText(1, doc->url().prettyUrl());
+        setCheckState(0, Qt::Checked);
     }
     KTextEditor::Document* document;
 };
@@ -49,6 +50,7 @@ class KateDocItem : public QTreeWidgetItem
 
 CloseConfirmDialog::CloseConfirmDialog(
     QList<KTextEditor::Document*>& docs
+  , KToggleAction* show_confirmation_action
   , QWidget* const parent
   )
   : KDialog(parent)
@@ -82,29 +84,37 @@ CloseConfirmDialog::CloseConfirmDialog(
 
     // document list
     m_docs_tree = new QTreeWidget(w);
-    QStringList header;
-    header << i18n("Filename");
-    m_docs_tree->setHeaderLabels(header);
+    QStringList headers;
+    headers << i18n("Document") << i18n("Location");
+    m_docs_tree->setHeaderLabels(headers);
     m_docs_tree->setSelectionMode(QAbstractItemView::SingleSelection);
     m_docs_tree->setRootIsDecorated(false);
+
     for (int i = 0; i < m_docs.size(); i++)
     {
         new KateDocItem(m_docs[i], m_docs_tree);
     }
     m_docs_tree->header()->setStretchLastSection(false);
-    m_docs_tree->header()->setResizeMode(0, QHeaderView::Stretch);
+    m_docs_tree->header()->setResizeMode(0, QHeaderView::ResizeToContents);
     m_docs_tree->header()->setResizeMode(1, QHeaderView::ResizeToContents);
+
+    m_dont_ask_again = new QCheckBox(i18n("Do not ask again"), w);
+    // NOTE If we are here, it means that 'Show Confirmation' action is enabled,
+    // so not needed to read config...
+    assert("Sanity check" && show_confirmation_action->isChecked());
+    m_dont_ask_again->setCheckState(Qt::Checked);
+    connect(m_dont_ask_again, SIGNAL(toggled(bool)), show_confirmation_action, SLOT(setChecked(bool)));
 
     // Update documents list according checkboxes
     connect(this, SIGNAL(accepted()), this, SLOT(updateDocsList()));
 
-    KConfigGroup gcg(KGlobal::config(), "CLoseConfirmationDialog");
+    KConfigGroup gcg(KGlobal::config(), "CloseConfirmationDialog");
     restoreDialogSize(gcg);                                 // restore dialog geometry from config
 }
 
 CloseConfirmDialog::~CloseConfirmDialog()
 {
-    KConfigGroup gcg(KGlobal::config(), "CLoseConfirmationDialog");
+    KConfigGroup gcg(KGlobal::config(), "CloseConfirmationDialog");
     saveDialogSize(gcg);                                    // write dialog geometry to config
     gcg.sync();
 }

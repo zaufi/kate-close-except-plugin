@@ -21,19 +21,20 @@
  */
 
 #ifndef __SRC__CLOSE_EXCEPT_PLUGIN_H__
-#  define __SRC__CLOSE_EXCEPT_PLUGIN_H__
+# define __SRC__CLOSE_EXCEPT_PLUGIN_H__
 
 // Project specific includes
 
 // Standard includes
-#  include <kate/plugin.h>
-#  include <kate/pluginconfigpageinterface.h>
-#  include <KActionMenu>
-#  include <KTextEditor/Document>
-#  include <KTextEditor/View>
-#  include <QtCore/QSignalMapper>
-#  include <cassert>
-#  include <set>
+# include <kate/plugin.h>
+# include <kate/pluginconfigpageinterface.h>
+# include <KActionMenu>
+# include <KTextEditor/Document>
+# include <KTextEditor/View>
+# include <KToggleAction>
+# include <QtCore/QSignalMapper>
+# include <cassert>
+# include <set>
 
 namespace kate {
 class CloseExceptPlugin;                                    // forward declaration
@@ -55,7 +56,7 @@ public:
     /// Default constructor
     CloseExceptPluginView(Kate::MainWindow*, const KComponentData&, CloseExceptPlugin*);
     /// Destructor
-    virtual ~CloseExceptPluginView();
+    ~CloseExceptPluginView();
 
 private Q_SLOTS:
     void documentCreated(KTextEditor::Editor*, KTextEditor::Document*);
@@ -86,6 +87,7 @@ private:
       );
 
     CloseExceptPlugin* m_plugin;
+    QPointer<KToggleAction> m_show_confirmation_action;
     QPointer<KActionMenu> m_except_menu;
     QPointer<KActionMenu> m_like_menu;
     QPointer<QSignalMapper> m_except_mapper;
@@ -111,6 +113,25 @@ public:
     virtual ~CloseExceptPlugin() {}
     /// Create a new view of this plugin for the given main window
     Kate::PluginView* createView(Kate::MainWindow*);
+    /// \name Plugin interface implementation
+    //@{
+    void readSessionConfig(KConfigBase*, const QString&);
+    void writeSessionConfig(KConfigBase*, const QString&);
+    //@}
+    bool showConfirmationNeeded() const
+    {
+        return m_show_confirmation_needed;
+    }
+
+public Q_SLOTS:
+    void toggleShowConfirmation(bool flag)
+    {
+        m_show_confirmation_needed = flag;
+        kDebug() << "TOGGLE ACTION: sc=" << m_show_confirmation_needed;
+    }
+
+private:
+    bool m_show_confirmation_needed;
 };
 
 }                                                           // namespace kate
