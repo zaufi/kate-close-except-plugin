@@ -76,7 +76,7 @@ CloseConfirmDialog::CloseConfirmDialog(
     QLabel* t = new QLabel(
         i18n(
             "<qt>You are about to close the following documents..."
-            "<p>Uncheck those you don't want to close.</p></qt>"
+            "<p>It is last chance to uncheck those you don't want to close ;-)</p></qt>"
           )
       , lo1
       );
