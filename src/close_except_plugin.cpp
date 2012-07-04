@@ -247,7 +247,7 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
         const QString& path = document->url().upUrl().path();
         const QString& ext = QFileInfo(document->url().fileName()).completeSuffix();
         const bool match = (!is_path && mask.endsWith(ext))
-          || (is_path && (mask.size() < path.size() ? path.startsWith(mask) : mask.startsWith(path)))
+          || (is_path && path.startsWith(mask))
           ;
         if (match == close_if_match)
         {
