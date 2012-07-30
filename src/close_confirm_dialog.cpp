@@ -102,8 +102,8 @@ CloseConfirmDialog::CloseConfirmDialog(
     // NOTE If we are here, it means that 'Show Confirmation' action is enabled,
     // so not needed to read config...
     assert("Sanity check" && show_confirmation_action->isChecked());
-    m_dont_ask_again->setCheckState(Qt::Checked);
-    connect(m_dont_ask_again, SIGNAL(toggled(bool)), show_confirmation_action, SLOT(setChecked(bool)));
+    m_dont_ask_again->setCheckState(Qt::Unchecked);
+    connect(m_dont_ask_again, SIGNAL(toggled(bool)), show_confirmation_action, SLOT(toggle()));
 
     // Update documents list according checkboxes
     connect(this, SIGNAL(accepted()), this, SLOT(updateDocsList()));
