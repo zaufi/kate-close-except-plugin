@@ -1,6 +1,7 @@
 #
 # Copyright 2012 by Alex Turbov <i.zaufi@gmail.com>
 #
+# kate: hl cmake;
 
 #---------------------------------------------------------
 # Section: Init cmake
@@ -9,13 +10,17 @@ project(KateCloseExceptPlugin)
 
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 3)
-set(VERSION_PATCH 1)
+set(VERSION_PATCH 2)
 set(VERSION_STRING ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
 
 #---------------------------------------------------------
 # Section: Include aux cmake functions
 #---------------------------------------------------------
+include(GuessBuildType)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    include(CTest)
+endif()
 # include(CTest)
 # include(AddBoostTests)
 
@@ -54,3 +59,25 @@ include(DefineSkeletonGenerationTargetsIfPossible)
 # Section: Dive into subdirs after main configuration
 #---------------------------------------------------------
 add_subdirectory(src)
+
+#---------------------------------------------------------
+# Section: Configure package options
+#---------------------------------------------------------
+set(CPACK_GENERATOR TBZ2)
+set(CPACK_SOURCE_GENERATOR TBZ2)
+set(
+    CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${VERSION_STRING}"
+    CACHE INTERNAL "tarball basename"
+  )
+# The following components are regex's to match anywhere (unless anchored)
+# in absolute path + filename to find files or directories to be excluded
+# from source tarball.
+set(CPACK_SOURCE_IGNORE_FILES
+    "\\\\.gitignore$";
+    "\\\\.kate-swp$";
+    "\\\\.tar\\\\.gz$";
+    "^.*/\\\\.git.*$"
+  )
+
+# Include CPack support
+include(CPack)

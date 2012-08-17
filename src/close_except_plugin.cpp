@@ -1,7 +1,7 @@
 /**
  * \file
  *
- * \brief Class \c kate::CloseExceptPlugin (implementation)
+ * \brief Kate Close Except/Like plugin implementation
  *
  * \date Thu Mar  8 08:13:43 MSK 2012 -- Initial design
  */
@@ -157,10 +157,11 @@ void CloseExceptPluginView::appendActionsFrom(
 {
     Q_FOREACH(const QString& path, paths)
     {
-        actions[path] = QPointer<KAction>(new KAction(path, menu));
-        menu->addAction(actions[path]);
-        connect(actions[path], SIGNAL(triggered()), mapper, SLOT(map()));
-        mapper->setMapping(actions[path], path);
+        QString action = path.startsWith("*") ? path : path + "*";
+        actions[action] = QPointer<KAction>(new KAction(action, menu));
+        menu->addAction(actions[action]);
+        connect(actions[action], SIGNAL(triggered()), mapper, SLOT(map()));
+        mapper->setMapping(actions[action], action);
     }
 }
 
@@ -209,8 +210,9 @@ void CloseExceptPluginView::updateMenu()
     else
     {
         // Iterate over documents and form a set of candidates
-        std::set<QString> paths;
-        std::set<QString> masks;
+        typedef std::set<QString> paths_set_type;
+        paths_set_type paths;
+        paths_set_type masks;
         Q_FOREACH(KTextEditor::Document* document, docs)
         {
             const QString& ext = QFileInfo(document->url().path()).completeSuffix();
@@ -220,8 +222,22 @@ void CloseExceptPluginView::updateMenu()
                 KUrl url = document->url().upUrl()
               ; url.hasPath() && url.path() != "/"
               ; url = url.upUrl()
-              ) paths.insert(url.path() + "*");
+              ) paths.insert(url.path());
         }
+        // Remove common entries -- i.e. such that every path in a list
+        // starts w/ it... so final menu length will be decrased a little.
+        for (paths_set_type::iterator it = paths.begin(), last = paths.end(); it != last;)
+        {
+            paths_set_type::iterator not_it = paths.begin();
+            for (; not_it != last; ++not_it)
+                if (!not_it->startsWith(*it))
+                    break;
+            if (not_it == last)
+                paths.erase(it++);
+            else
+                ++it;
+        }
+        //
         m_except_mapper = updateMenu(paths, masks, m_except_actions, m_except_menu);
         m_like_mapper = updateMenu(paths, masks, m_like_actions, m_like_menu);
         connect(m_except_mapper, SIGNAL(mapped(const QString&)), this, SLOT(closeExcept(const QString&)));

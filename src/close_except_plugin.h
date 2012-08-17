@@ -1,7 +1,7 @@
 /**
  * \file
  *
- * \brief Class \c kate::CloseExceptPlugin (interface)
+ * \brief Declate Kate's Close Except/Like plugin classes
  *
  * \date Thu Mar  8 08:13:43 MSK 2012 -- Initial design
  */
