@@ -120,7 +120,8 @@ CloseExceptPluginView::CloseExceptPluginView(
     mainWindow()->guiFactory()->addClient(this);
 }
 
-CloseExceptPluginView::~CloseExceptPluginView() {
+CloseExceptPluginView::~CloseExceptPluginView()
+{
     mainWindow()->guiFactory()->removeClient(this);
 }
 
@@ -138,6 +139,12 @@ void CloseExceptPluginView::documentCreated(KTextEditor::Editor*, KTextEditor::D
     connect(
         document
       , SIGNAL(documentNameChanged(KTextEditor::Document*))
+      , this
+      , SLOT(updateMenuSlotStub(KTextEditor::Document*))
+      );
+    connect(
+        document
+      , SIGNAL(documentUrlChanged(KTextEditor::Document*))
       , this
       , SLOT(updateMenuSlotStub(KTextEditor::Document*))
       );
@@ -211,32 +218,38 @@ void CloseExceptPluginView::updateMenu()
     {
         // Iterate over documents and form a set of candidates
         typedef std::set<QString> paths_set_type;
-        paths_set_type paths;
+        paths_set_type doc_paths;
         paths_set_type masks;
         Q_FOREACH(KTextEditor::Document* document, docs)
         {
             const QString& ext = QFileInfo(document->url().path()).completeSuffix();
             if (!ext.isEmpty())
                 masks.insert("*." + ext);
+            doc_paths.insert(document->url().upUrl().path());
+        }
+        paths_set_type paths = doc_paths;
+        kDebug() << "stage #1: Collected" << paths.size() << "paths and" << masks.size() << "masks";
+        // Add common paths to the collection
+        for (paths_set_type::iterator it = doc_paths.begin(), last = doc_paths.end(); it != last; ++it)
+        {
             for (
-                KUrl url = document->url().upUrl()
+                KUrl url = *it
               ; url.hasPath() && url.path() != "/"
               ; url = url.upUrl()
-              ) paths.insert(url.path());
-        }
-        // Remove common entries -- i.e. such that every path in a list
-        // starts w/ it... so final menu length will be decrased a little.
-        for (paths_set_type::iterator it = paths.begin(), last = paths.end(); it != last;)
-        {
-            paths_set_type::iterator not_it = paths.begin();
-            for (; not_it != last; ++not_it)
-                if (!not_it->startsWith(*it))
+              )
+            {
+                paths_set_type::iterator not_it = it;
+                for (++not_it; not_it != last; ++not_it)
+                    if (!not_it->startsWith(url.path()))
+                        break;
+                if (not_it == last)
+                {
+                    paths.insert(url.path());
                     break;
-            if (not_it == last)
-                paths.erase(it++);
-            else
-                ++it;
+                }
+            }
         }
+        kDebug() << "stage #2: Collected" << paths.size() << "paths and" << masks.size() << "masks";
         //
         m_except_mapper = updateMenu(paths, masks, m_except_actions, m_except_menu);
         m_like_mapper = updateMenu(paths, masks, m_like_actions, m_like_menu);
@@ -308,3 +321,5 @@ void CloseExceptPluginView::close(const QString& item, const bool close_if_match
 }
 //END CloseExceptPluginView
 }                                                           // namespace kate
+
+// kate: hl C++11/Qt4;
